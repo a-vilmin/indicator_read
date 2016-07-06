@@ -1,4 +1,5 @@
 from sys import argv
+from time import time
 
 
 def test_read(f):
@@ -15,5 +16,14 @@ def test_read(f):
             string = 'x={0}  y={1}  z={2}  i={3}'.format(x, y, z, i)
             print(string)
 
+
+def type_checker(f):
+    start = time()
+
+    with open(f, 'rb') as binary:
+        binary.read()
+
+    print(str(time()-start))
+
 if __name__ == '__main__':
-    test_read(argv[1])
+    type_checker(argv[1])
