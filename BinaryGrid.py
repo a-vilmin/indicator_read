@@ -27,26 +27,35 @@ class BinaryGrid(object):
         bin_f.close()
 
     def write_vtk(self):
-        vtk = vtkImageData()
+        vtk1 = vtkImageData()
+        vtk2 = vtkImageData()
+        vtk3 = vtkImageData()
 
-        vtk.SetSpacing(DX, DY, DZ)
-        vtk.SetDimensions(self.dims[0]+1, self.dims[1]+1, self.dims[2]+1)
+        vtkArr = [vtk1, vtk2, vtk3]
 
-        array = vtkIntArray()
-        array.SetName("Stratal Architecture")
-        array.SetNumberOfComponents(1)
+        z_hold = 0
+        for vtk in vtkArr:
+            vtk.SetSpacing(DX, DY, DZ)
+            vtk.SetDimensions(self.dims[0]+1, self.dims[1]+1, 201)
 
-        for z in range(self.dims[2]-1, -1, -1):
-            for y in range(0, self.dims[1]):
-                for x in range(0, self.dims[0]):
-                    val = self.vals[x][y][z]
-                    array.InsertNextTuple1(val)
-        vtk.GetCellData().AddArray(array)
+            vtk.SetOrigin(0, 0, z_hold*DZ)
+            array = vtkIntArray()
+            array.SetName("Stratal Architecture")
+            array.SetNumberOfComponents(1)
 
-        vtk_f = vtkXMLImageDataWriter()
-        vtk_f.SetFileName("test_stratal.vti")
-        vtk_f.SetInput(vtk)
-        vtk_f.Write()
+            for z in range(z_hold, z_hold+200):
+                for y in range(0, self.dims[1]):
+                    for x in range(0, self.dims[0]):
+                        val = self.vals[x][y][z]
+                        array.InsertNextTuple1(val)
+            vtk.GetCellData().AddArray(array)
+            z_hold += 200
+
+        for i, vtk in enumerate(vtkArr):
+            vtk_f = vtkXMLImageDataWriter()
+            vtk_f.SetFileName("test_stratal"+str(i)+".vti")
+            vtk_f.SetInput(vtk)
+            vtk_f.Write()
 
 if __name__ == '__main__':
     from sys import argv
