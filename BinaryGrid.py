@@ -1,6 +1,7 @@
 import numpy as np
 from vtk import vtkImageData, vtkIntArray, vtkXMLImageDataWriter
 from struct import unpack
+from collections import defaultdict
 
 DX = 2.0
 DY = 2.0
@@ -27,33 +28,32 @@ class BinaryGrid(object):
         bin_f.close()
 
     def write_vtk(self):
-        vtk1 = vtkImageData()
-        vtk2 = vtkImageData()
-        vtk3 = vtkImageData()
+        vtk_objs = defaultdict(vtkImageData)
 
-        vtkArr = [vtk1, vtk2, vtk3]
+        for i in range(0, 6):
+            vtk_objs['vtk'+str(i)] = vtkImageData()
 
         z_hold = 0
-        for vtk in vtkArr:
+        for key, vtk in vtk_objs.iteritems():
             vtk.SetSpacing(DX, DY, DZ)
-            vtk.SetDimensions(self.dims[0]+1, self.dims[1]+1, 201)
+            vtk.SetDimensions(self.dims[0]+1, self.dims[1]+1, 101)
 
             vtk.SetOrigin(0, 0, z_hold*DZ)
             array = vtkIntArray()
             array.SetName("Stratal Architecture")
             array.SetNumberOfComponents(1)
 
-            for z in range(z_hold, z_hold+200):
+            for z in range(z_hold, z_hold+100):
                 for y in range(0, self.dims[1]):
                     for x in range(0, self.dims[0]):
                         val = self.vals[x][y][z]
                         array.InsertNextTuple1(val)
             vtk.GetCellData().AddArray(array)
-            z_hold += 200
+            z_hold += 100
 
-        for i, vtk in enumerate(vtkArr):
+        for key, vtk in vtk_objs.iteritems():
             vtk_f = vtkXMLImageDataWriter()
-            vtk_f.SetFileName("test_stratal"+str(i)+".vti")
+            vtk_f.SetFileName(key+".vti")
             vtk_f.SetInput(vtk)
             vtk_f.Write()
 
