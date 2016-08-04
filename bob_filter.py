@@ -21,64 +21,78 @@ def read_chunk(bin_f):
     return chunk
 
 
-def make_cell(chunk, index):
+def make_cell(chunk, dims):
     hexa = vtkHexahedron()
+    point_ids = make_ids(chunk, dims)
+
     for i in range(8):
-        hexa.GetPointIds().SetId(i, index)
-        index += 1
+        hexa.GetPointIds().SetId(i, point_ids[i])
 
-    return hexa, index
+    return hexa
 
 
-def add_points(x, y, z, points):
-    scaled_x = DX * x
-    scaled_y = DY * y
-    scaled_z = DZ * z
+def make_ids(chunk, dims):
+    ids = []
+    z_scalar = dims['DX'] * dims['DY']
+    y_scalar = (dims['DX'] + 1) * dims['DY']
 
-    points.InsertNextPoint([scaled_x, scaled_y, scaled_z])
-    points.InsertNextPoint([scaled_x + DX, scaled_y, scaled_z])
-    points.InsertNextPoint([scaled_x + DX, scaled_y + DY, scaled_z])
-    points.InsertNextPoint([scaled_x, scaled_y + DY, scaled_z])
+    ids.append((chunk['x'])+(chunk['y']*y_scalar)+(chunk['z']*z_scalar)+1)
+    ids.append(ids[0] + 1)
+    ids.append(ids[1] + dims['DX'] + 1)
+    ids.append(ids[2] - 1)
 
-    points.InsertNextPoint([scaled_x, scaled_y, scaled_z + DZ])
-    points.InsertNextPoint([scaled_x + DX, scaled_y, scaled_z + DZ])
-    points.InsertNextPoint([scaled_x + DX, scaled_y + DY, scaled_z + DZ])
-    points.InsertNextPoint([scaled_x, scaled_y + DY, scaled_z + DZ])
+    for i in range(4):
+        ids.append(ids[i] + z_scalar)
+
+    return ids
+
+
+def add_points(x_lim, y_lim, z_lim, points):
+    for z in range(z_lim+1):
+        for y in range(y_lim+1):
+            for x in range(x_lim+1):
+                point = [x * DX, y * DY, z * DZ]
+                points.InsertNextPoint(point)
 
 
 def write_vtk(ugrid):
     writer = vtkUnstructuredGridWriter()
     writer.SetFileName("test_filter.vtk")
-    writer.SetInput(ugrid)
+    writer.SetInputData(ugrid)
     writer.Write()
 
 
-def main(bin_f, filter_vals):
+def main(bin_f, filter_vals, dims):
     read_file = open(bin_f, 'rb')
 
     ugrid = vtkUnstructuredGrid()
     points = vtkPoints()
-    values = vtkIntArray()
 
+    add_points(dims['DX'], dims['DY'], dims['DZ'], points)
+    ugrid.SetPoints(points)
+
+    values = vtkIntArray()
     values.SetName("Filtered Values")
     values.SetNumberOfComponents(1)
-    index = 0
+
+    count = 0
 
     while read_file.read(4):
+        if count > 1000:
+            break
+
         chunk = read_chunk(read_file)
 
         if chunk['i'] in filter_vals:
             values.InsertNextTuple1(chunk['i'])
-            add_points(chunk['x'], chunk['y'], chunk['z'], points)
-
-            cell, index = make_cell(chunk, index)
+            cell = make_cell(chunk, dims)
             ugrid.InsertNextCell(cell.GetCellType(), cell.GetPointIds())
+            count += 1
 
         read_file.read(4)
 
     read_file.close()
 
-    ugrid.SetPoints(points)
     ugrid.GetCellData().AddArray(values)
     write_vtk(ugrid)
 
@@ -86,5 +100,6 @@ def main(bin_f, filter_vals):
 if __name__ == '__main__':
     from sys import argv
     filter_vals = range(8, 12)
+    dims = {'DX': 500, 'DY': 500, 'DZ': 600}
 
-    main(argv[1], filter_vals)
+    main(argv[1], filter_vals, dims)
