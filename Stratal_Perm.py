@@ -3,6 +3,9 @@ from vtk import vtkImageData, vtkFloatArray, vtkXMLImageDataWriter
 from sys import argv
 
 
+# Collection of scripts to parse the ASCII file of perm values in stratal
+# models presented from Wright State
+
 def create_array(read_f, x_dim=500, y_dim=500, z_dim=600):
     arr = np.empty((z_dim, y_dim, x_dim))
 
@@ -38,7 +41,6 @@ def write_vtk(arr, DX=2.0, DY=2.0, DZ=.05, x_dim=500, y_dim=500, z_dim=600):
 
 def main():
     read_f = open(argv[1], 'r')
-
     np_arr = create_array(read_f)
 
     write_vtk(np_arr)
